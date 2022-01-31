@@ -1,0 +1,27 @@
+[package]
+name = "aws-or-selfhost"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+# shared deps:
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+tokio = { version = "1.0", features = ["macros", "io-util", "sync", "rt-multi-thread"] }
+
+# minimum aws lambda deps:
+lambda_runtime = "0.4.1"
+lambda_http = { git = "https://github.com/awslabs/aws-lambda-rust-runtime" }
+# Add these to allow cloudwatch logging. would need to make your own aws init function
+# simple_logger = "1.6.0"
+# log = "^0.4"
+
+# idk if minimum, but axum API deps:
+axum = "0.4"
+tower = { version = "0.4", features = ["util", "timeout"] }
+tower-http = { version = "0.2.0", features = ["add-extension", "trace", "cors"] }
+hyper = "*"
+
+[features]
+aws = []
