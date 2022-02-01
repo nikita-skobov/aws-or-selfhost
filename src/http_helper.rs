@@ -7,6 +7,8 @@ use serde::Serialize;
 struct JsonifyRequest<'a> {
     pub method: &'a str,
     pub uri: String,
+    pub path: &'a str,
+    pub query: Option<&'a str>,
     pub version: String,
     pub headers: HashMap<&'a str, &'a str>,
     pub body: serde_json::Value,
@@ -46,6 +48,8 @@ macro_rules! request_to_serde_json {
                 version: format!("{:?}", parts.version),
                 headers: map,
                 body: body_value,
+                path: parts.uri.path(),
+                query: parts.uri.query(),
             };
 
             serde_json::to_value(json_req).unwrap()
