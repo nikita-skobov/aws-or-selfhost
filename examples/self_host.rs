@@ -1,6 +1,6 @@
 use aws_or_selfhost::{ServerBuilder, JsonApiResponse, tokio_main};
 
-pub fn root_handler(event: serde_json::Value) -> JsonApiResponse {
+pub async fn root_handler(event: serde_json::Value) -> JsonApiResponse {
     JsonApiResponse {
         status_code: 200,
         json: event,

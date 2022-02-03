@@ -1,4 +1,4 @@
-use std::{future::Future, collections::HashMap};
+use std::{future::Future, collections::HashMap, pin::Pin};
 
 pub mod self_host;
 pub mod aws;
@@ -25,10 +25,49 @@ pub struct JsonApiResponse {
     pub json: serde_json::Value,
 }
 
-pub type RouteHandler = fn (serde_json::Value) -> JsonApiResponse;
-pub type RouteMap = HashMap<String, RouteHandler>;
 pub type ServerInitResponse = Result<(), ServerInitError>;
 pub type ServerInitError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+pub type BoxDynFuture<O> = Pin<Box<dyn Future<Output = O> + Send>>;
+pub type BoxDynFn<I, O> = Box<dyn Fn(I) -> BoxDynFuture<O> + Sync + Send>;
+pub type RouteMapInner = HashMap<String, BoxDynFn<serde_json::Value, JsonApiResponse>>;
+
+#[derive(Default)]
+pub struct RouteMap {
+    pub get_map: RouteMapInner,
+    pub post_map: RouteMapInner,
+}
+
+/// creates a `BoxDynFn<I, O>` from any callback
+/// that is `Sync` and returns a future that is `Send`.
+pub fn create_box_dyn_fn<I, O, Out, F>(
+    cb: F
+) -> BoxDynFn<I, O>
+    where F: 'static + Send + Sync + Fn(I) -> Out,
+        Out: 'static + Send + Future<Output = O>,
+{
+    create_box_dyn_fn_from(cb)
+}
+
+/// similar to `create_box_dyn_fn` but the input type I
+/// must satisfy `From<IOriginal>` where `IOriginal` is
+/// the original type that you expect your callback to be called with
+/// and then this convenient wrapper calls `.into()` on your behalf.
+pub fn create_box_dyn_fn_from<IOriginal, I, O, Out, F>(
+    cb: F
+) -> BoxDynFn<IOriginal, O>
+    where I: From<IOriginal>,
+        Out: 'static + Send + Future<Output = O>,
+          F: 'static + Send + Sync + Fn(I) -> Out,
+{
+    let box_dyn_future_cb = move |x: IOriginal| {
+        let xi = x.into();
+        let res = cb(xi);
+        Box::pin(res) as BoxDynFuture<O>
+    };
+    let box_dyn_future = Box::new(box_dyn_future_cb) as BoxDynFn<IOriginal, O>;
+    box_dyn_future
+}
 
 pub struct ServerBuilder {
     pub route_map: RouteMap,
@@ -59,8 +98,31 @@ impl ServerBuilder {
         self
     }
 
-    pub fn get(mut self, route: &str, f: RouteHandler) -> Self {
-        self.route_map.insert(route.to_owned(), f);
+    pub fn get<I, F, Out>(
+        mut self,
+        route: &str,
+        f: F
+    ) -> Self
+        where I: From<serde_json::Value>,
+            Out: 'static + Send + Future<Output = JsonApiResponse>,
+              F: 'static + Send + Sync + Fn(I) -> Out,
+    {
+        let box_dyn: BoxDynFn<serde_json::Value, JsonApiResponse> = create_box_dyn_fn_from(f);
+        self.route_map.get_map.insert(route.to_owned(), box_dyn);
+        self
+    }
+
+    pub fn post<I, F, Out>(
+        mut self,
+        route: &str,
+        f: F
+    ) -> Self
+        where I: From<serde_json::Value>,
+            Out: 'static + Send + Future<Output = JsonApiResponse>,
+              F: 'static + Send + Sync + Fn(I) -> Out,
+    {
+        let box_dyn: BoxDynFn<serde_json::Value, JsonApiResponse> = create_box_dyn_fn_from(f);
+        self.route_map.post_map.insert(route.to_owned(), box_dyn);
         self
     }
 

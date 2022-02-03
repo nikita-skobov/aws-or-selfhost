@@ -11,15 +11,22 @@ pub async fn aws_init(
         let event_json = http_helper::request_to_serde_json_aws(event).await;
         // TODO: parse out the route from the event json, and match based on
         // the routes owned.
-        let json_resp = match routes_owned.get("thing") {
-            Some(fn_ptr) => {
-                fn_ptr(event_json)
+        let request_method = "GET";
+        let request_key = "/";
+
+        let route_map_inner = match request_method {
+            "GET" => &routes_owned.get_map,
+            "POST" => &routes_owned.post_map,
+            _ => &routes_owned.get_map
+        };
+        let json_resp = match route_map_inner.get(request_key) {
+            Some(fn_ptr_box) => {
+                let future = (fn_ptr_box)(event_json);
+                future.await
             }
-            None => {
-                JsonApiResponse {
-                    status_code: 500,
-                    json: serde_json::Value::Null,
-                }
+            None => JsonApiResponse {
+                status_code: 500,
+                json: serde_json::Value::Null,
             }
         };
 
