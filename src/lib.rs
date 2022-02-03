@@ -1,5 +1,7 @@
 use std::{future::Future, collections::HashMap, pin::Pin};
 
+use serde::de::DeserializeOwned;
+
 pub mod self_host;
 pub mod aws;
 pub mod http_helper;
@@ -23,6 +25,14 @@ pub fn tokio_main(initialization: impl Future<Output = Result<(), ServerInitErro
 pub struct JsonApiResponse {
     pub status_code: u16,
     pub json: serde_json::Value,
+}
+impl Default for JsonApiResponse {
+    fn default() -> Self {
+        Self {
+            status_code: 500,
+            json: serde_json::Value::Null
+        }
+    }
 }
 
 pub type ServerInitResponse = Result<(), ServerInitError>;
@@ -69,6 +79,25 @@ pub fn create_box_dyn_fn_from<IOriginal, I, O, Out, F>(
     box_dyn_future
 }
 
+/// similar to `create_box_dyn_fn_from` but instead of specifying
+/// a 'from', you can specify a conversion function
+pub fn create_box_dyn_fn_convert<IOriginal, I, O, Out, F, F2>(
+    cb: F,
+    convert: F2,
+) -> BoxDynFn<IOriginal, O>
+    where Out: 'static + Send + Future<Output = O>,
+            F: 'static + Send + Sync + Fn(I) -> Out,
+           F2: 'static + Send + Sync + Fn(IOriginal) -> I,
+{
+    let box_dyn_future_cb = move |x: IOriginal| {
+        let xi = convert(x);
+        let res = cb(xi);
+        Box::pin(res) as BoxDynFuture<O>
+    };
+    let box_dyn_future = Box::new(box_dyn_future_cb) as BoxDynFn<IOriginal, O>;
+    box_dyn_future
+}
+
 pub struct ServerBuilder {
     pub route_map: RouteMap,
     /// only applicable for self host server
@@ -103,11 +132,12 @@ impl ServerBuilder {
         route: &str,
         f: F
     ) -> Self
-        where I: From<serde_json::Value>,
+        where I: DeserializeOwned,
             Out: 'static + Send + Future<Output = JsonApiResponse>,
               F: 'static + Send + Sync + Fn(I) -> Out,
     {
-        let box_dyn: BoxDynFn<serde_json::Value, JsonApiResponse> = create_box_dyn_fn_from(f);
+        let box_dyn: BoxDynFn<serde_json::Value, JsonApiResponse>;
+        box_dyn = create_box_dyn_fn_convert(f, |x| serde_json::from_value(x).unwrap());
         self.route_map.get_map.insert(route.to_owned(), box_dyn);
         self
     }
@@ -117,11 +147,12 @@ impl ServerBuilder {
         route: &str,
         f: F
     ) -> Self
-        where I: From<serde_json::Value>,
+        where I: DeserializeOwned,
             Out: 'static + Send + Future<Output = JsonApiResponse>,
               F: 'static + Send + Sync + Fn(I) -> Out,
     {
-        let box_dyn: BoxDynFn<serde_json::Value, JsonApiResponse> = create_box_dyn_fn_from(f);
+        let box_dyn: BoxDynFn<serde_json::Value, JsonApiResponse>;
+        box_dyn = create_box_dyn_fn_convert(f, |x| serde_json::from_value(x).unwrap());
         self.route_map.post_map.insert(route.to_owned(), box_dyn);
         self
     }
