@@ -1,10 +1,10 @@
 use aws_or_selfhost::{ServerBuilder, ApiResponse, tokio_main};
 
 pub async fn root_handler(event: serde_json::Value) -> ApiResponse {
-    ApiResponse {
-        status_code: 200,
-        ..Default::default()
-    }
+    let mut resp = ApiResponse::default();
+    resp.header("content-type", "text/html");
+    resp.body("<html><body><h1>Hello</h1></body></html>");
+    resp
 }
 
 fn main() {
