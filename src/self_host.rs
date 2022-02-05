@@ -3,7 +3,7 @@ use hyper::{Request, Body, StatusCode};
 use serde_json::Value;
 use std::{net::SocketAddr, pin::Pin, future::Future, sync::Arc};
 
-use crate::{RouteMap, ServerInitResponse, http_helper, JsonApiResponse};
+use crate::{RouteMap, ServerInitResponse, http_helper, JsonApiResponse, header_hashmap_to_header_map};
 
 pub fn app_route_get<F>(
     app: Router,
@@ -16,7 +16,9 @@ pub fn app_route_get<F>(
         let req_json = http_helper::request_to_serde_json_self(r).await;
         let resp = cb(req_json);
         let resp = resp.await;
-        (StatusCode::from_u16(resp.status_code).unwrap(), serde_json::to_string(&resp.json).unwrap())
+        (StatusCode::from_u16(resp.status_code).unwrap(),
+        header_hashmap_to_header_map(resp.headers),
+        serde_json::to_string(&resp.json).unwrap())
     }))
 }
 
@@ -31,7 +33,9 @@ pub fn app_route_post<F>(
         let req_json = http_helper::request_to_serde_json_self(r).await;
         let resp = cb(req_json);
         let resp = resp.await;
-        (StatusCode::from_u16(resp.status_code).unwrap(), serde_json::to_string(&resp.json).unwrap())
+        (StatusCode::from_u16(resp.status_code).unwrap(),
+        header_hashmap_to_header_map(resp.headers),
+        serde_json::to_string(&resp.json).unwrap())
     }))
 }
 

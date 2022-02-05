@@ -4,6 +4,7 @@ pub async fn root_handler(event: serde_json::Value) -> JsonApiResponse {
     JsonApiResponse {
         status_code: 200,
         json: event,
+        ..Default::default()
     }
 }
 

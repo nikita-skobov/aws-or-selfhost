@@ -37,13 +37,21 @@ pub async fn aws_init(
             None => JsonApiResponse {
                 status_code: 500,
                 json: serde_json::Value::Null,
+                ..Default::default()
             }
         };
 
-        Ok(lambda_http::Response::builder()
-            .status(json_resp.status_code)
-            .body(serde_json::to_string(&json_resp.json).unwrap())
-            .expect("Failed to render response"))
+        let mut builder = lambda_http::Response::builder().status(
+            json_resp.status_code
+        );
+        for (k, v) in json_resp.headers {
+            builder = builder.header(k, v);
+        }
+        let response = builder.body(
+            serde_json::to_string(&json_resp.json).unwrap()
+        ).expect("Failed to render response");
+
+        Ok(response)
     };
 
     let func = lambda_http::service_fn(closure);

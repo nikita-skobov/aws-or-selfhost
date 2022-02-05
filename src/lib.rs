@@ -1,5 +1,6 @@
 use std::{future::Future, collections::HashMap, pin::Pin};
 
+use hyper::{HeaderMap, header::HeaderName};
 use serde::de::DeserializeOwned;
 
 pub mod self_host;
@@ -19,18 +20,30 @@ pub fn tokio_main(initialization: impl Future<Output = Result<(), ServerInitErro
     }
 }
 
+pub fn header_hashmap_to_header_map(
+    map: HashMap<&'static str, String>
+) -> HeaderMap {
+    let mut headermap = HeaderMap::new();
+    for (k, v) in map {
+        headermap.insert(k, v.parse().unwrap());
+    }
+    headermap
+}
+
 /// Two components to a Json api request:
 /// - Json
 /// - StatusCode
 pub struct JsonApiResponse {
     pub status_code: u16,
     pub json: serde_json::Value,
+    pub headers: HashMap<&'static str, String>,
 }
 impl Default for JsonApiResponse {
     fn default() -> Self {
         Self {
             status_code: 500,
-            json: serde_json::Value::Null
+            json: serde_json::Value::Null,
+            headers: HashMap::new(),
         }
     }
 }
