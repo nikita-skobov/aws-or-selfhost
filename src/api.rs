@@ -78,7 +78,7 @@ pub struct ApiResponse {
 impl Default for ApiResponse {
     fn default() -> Self {
         Self {
-            status_code: 500,
+            status_code: 200,
             resp: ApiResponseType::default(),
             headers: HashMap::default(),
         }
@@ -92,5 +92,9 @@ impl ApiResponse {
 
     pub fn body<T: Into<ApiResponseType>>(&mut self, body: T) {
         self.resp = body.into();
+    }
+
+    pub fn status(&mut self, status: u16) {
+        self.status_code = status;
     }
 }
