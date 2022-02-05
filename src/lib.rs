@@ -71,7 +71,8 @@ impl Default for ApiResponse {
     fn default() -> Self {
         Self {
             status_code: 500,
-            ..Default::default()
+            resp: ApiResponseType::default(),
+            headers: HashMap::default(),
         }
     }
 }

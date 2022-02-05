@@ -1,9 +1,9 @@
-use axum::{Router, routing::{get, post}, response::Response};
+use axum::{Router, routing::{get, post}};
 use hyper::{Request, Body, StatusCode};
 use serde_json::Value;
 use std::{net::SocketAddr, pin::Pin, future::Future, sync::Arc};
 
-use crate::{RouteMap, ServerInitResponse, http_helper, ApiResponse, header_hashmap_to_header_map, ApiResponseType, body_as_bytes};
+use crate::{RouteMap, ServerInitResponse, http_helper, ApiResponse, header_hashmap_to_header_map, body_as_bytes};
 
 pub fn app_route_get<F>(
     app: Router,
@@ -16,7 +16,6 @@ pub fn app_route_get<F>(
         let req_json = http_helper::request_to_serde_json_self(r).await;
         let resp = cb(req_json);
         let resp = resp.await;
-        let mut json_str = String::new();
         (StatusCode::from_u16(resp.status_code).unwrap(),
         header_hashmap_to_header_map(resp.headers),
         body_as_bytes(resp.resp))
@@ -34,7 +33,6 @@ pub fn app_route_post<F>(
         let req_json = http_helper::request_to_serde_json_self(r).await;
         let resp = cb(req_json);
         let resp = resp.await;
-        let mut json_str = String::new();
         (StatusCode::from_u16(resp.status_code).unwrap(),
         header_hashmap_to_header_map(resp.headers),
         body_as_bytes(resp.resp))
