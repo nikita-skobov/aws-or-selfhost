@@ -1,4 +1,4 @@
-use crate::{RouteMap, ServerInitResponse, JsonApiResponse, http_helper};
+use crate::{RouteMap, ServerInitResponse, ApiResponse, http_helper};
 
 
 pub async fn aws_init(
@@ -34,7 +34,7 @@ pub async fn aws_init(
                 let future = (fn_ptr_box)(event_json);
                 future.await
             }
-            None => JsonApiResponse {
+            None => ApiResponse {
                 status_code: 500,
                 json: serde_json::Value::Null,
                 ..Default::default()

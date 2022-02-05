@@ -7,7 +7,7 @@ I would like to write a server application once, and be able to deploy it on AWS
 The below example shows how you would use this library. It's goal is to make the route handler as simple to use, while also allowing you to use either callbacks, or function pointers. And the input type can be anything as long as it can be deserialized from the request.
 
 ```rs
-use aws_or_selfhost::{ServerBuilder, JsonApiResponse, tokio_main};
+use aws_or_selfhost::{ServerBuilder, ApiResponse, tokio_main};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -20,15 +20,15 @@ pub struct OtherEvent {
     pub thing: bool,
 }
 
-pub async fn root_handler(event: serde_json::Value) -> JsonApiResponse {
-    JsonApiResponse {
+pub async fn root_handler(event: serde_json::Value) -> ApiResponse {
+    ApiResponse {
         status_code: 200,
         json: event,
     }
 }
 
-pub async fn event3_handler(event: MyEvent) -> JsonApiResponse {
-    JsonApiResponse {
+pub async fn event3_handler(event: MyEvent) -> ApiResponse {
+    ApiResponse {
         status_code: 404,
         json: serde_json::Value::Bool(true),
     }
@@ -38,10 +38,10 @@ fn main() {
     let app = ServerBuilder::default()
         .get("/", root_handler)
         .get("/event1", |x: MyEvent| async move {
-            JsonApiResponse::default()
+            ApiResponse::default()
         })
         .post("/event2", |y: OtherEvent| async move {
-            JsonApiResponse::default()
+            ApiResponse::default()
         })
         .get("/event3", event3_handler);
 

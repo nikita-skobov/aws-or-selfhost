@@ -1,6 +1,6 @@
 use std::{future::Future, collections::HashMap, pin::Pin};
 
-use hyper::{HeaderMap, header::HeaderName};
+use hyper::HeaderMap;
 use serde::de::DeserializeOwned;
 
 pub mod self_host;
@@ -33,12 +33,12 @@ pub fn header_hashmap_to_header_map(
 /// Two components to a Json api request:
 /// - Json
 /// - StatusCode
-pub struct JsonApiResponse {
+pub struct ApiResponse {
     pub status_code: u16,
     pub json: serde_json::Value,
     pub headers: HashMap<&'static str, String>,
 }
-impl Default for JsonApiResponse {
+impl Default for ApiResponse {
     fn default() -> Self {
         Self {
             status_code: 500,
@@ -48,12 +48,18 @@ impl Default for JsonApiResponse {
     }
 }
 
+impl ApiResponse {
+    pub fn header<V: AsRef<str>>(&mut self, key: &'static str, value: V) {
+        self.headers.insert(key, value.as_ref().to_owned());
+    }
+}
+
 pub type ServerInitResponse = Result<(), ServerInitError>;
 pub type ServerInitError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 pub type BoxDynFuture<O> = Pin<Box<dyn Future<Output = O> + Send>>;
 pub type BoxDynFn<I, O> = Box<dyn Fn(I) -> BoxDynFuture<O> + Sync + Send>;
-pub type RouteMapInner = HashMap<String, BoxDynFn<serde_json::Value, JsonApiResponse>>;
+pub type RouteMapInner = HashMap<String, BoxDynFn<serde_json::Value, ApiResponse>>;
 
 #[derive(Default)]
 pub struct RouteMap {
@@ -146,10 +152,10 @@ impl ServerBuilder {
         f: F
     ) -> Self
         where I: DeserializeOwned,
-            Out: 'static + Send + Future<Output = JsonApiResponse>,
+            Out: 'static + Send + Future<Output = ApiResponse>,
               F: 'static + Send + Sync + Fn(I) -> Out,
     {
-        let box_dyn: BoxDynFn<serde_json::Value, JsonApiResponse>;
+        let box_dyn: BoxDynFn<serde_json::Value, ApiResponse>;
         box_dyn = create_box_dyn_fn_convert(f, |x| serde_json::from_value(x).unwrap());
         self.route_map.get_map.insert(route.to_owned(), box_dyn);
         self
@@ -161,10 +167,10 @@ impl ServerBuilder {
         f: F
     ) -> Self
         where I: DeserializeOwned,
-            Out: 'static + Send + Future<Output = JsonApiResponse>,
+            Out: 'static + Send + Future<Output = ApiResponse>,
               F: 'static + Send + Sync + Fn(I) -> Out,
     {
-        let box_dyn: BoxDynFn<serde_json::Value, JsonApiResponse>;
+        let box_dyn: BoxDynFn<serde_json::Value, ApiResponse>;
         box_dyn = create_box_dyn_fn_convert(f, |x| serde_json::from_value(x).unwrap());
         self.route_map.post_map.insert(route.to_owned(), box_dyn);
         self

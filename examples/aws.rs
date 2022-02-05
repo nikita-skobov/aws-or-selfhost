@@ -1,7 +1,7 @@
-use aws_or_selfhost::{ServerBuilder, JsonApiResponse, tokio_main};
+use aws_or_selfhost::{ServerBuilder, ApiResponse, tokio_main};
 
-pub async fn root_handler(event: serde_json::Value) -> JsonApiResponse {
-    JsonApiResponse {
+pub async fn root_handler(event: serde_json::Value) -> ApiResponse {
+    ApiResponse {
         status_code: 200,
         json: event,
         ..Default::default()
