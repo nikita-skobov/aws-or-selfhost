@@ -1,6 +1,6 @@
-use aws_or_selfhost::{ServerBuilder, ApiResponse, tokio_main, start_handler};
+use aws_or_selfhost::{ServerBuilder, ApiResponse, tokio_main, start_handler, http_helper::FullRequest};
 
-pub async fn root_handler(event: serde_json::Value) -> ApiResponse {
+pub async fn root_handler(event: FullRequest) -> ApiResponse {
     ApiResponse {
         status_code: 200,
         ..Default::default()

@@ -4,23 +4,36 @@ I would like to write a server application once, and be able to deploy it on AWS
 
 # Examples
 
-The below example shows how you would use this library. It's goal is to make the route handler as simple to use, while also allowing you to use either callbacks, or function pointers. And the input type can be anything as long as it can be deserialized from the request.
+The below example shows how you would use this library. It's goal is to make the route handler as simple to use, while also allowing you to use either callbacks, or function pointers. And the input type can be anything as long as it can be converted from the `FullRequest`.
 
 ```rs
-use aws_or_selfhost::{ServerBuilder, ApiResponse, tokio_main};
-use serde::Deserialize;
+use aws_or_selfhost::{ServerBuilder, ApiResponse, tokio_main, http_helper::FullRequest};
 
-#[derive(Deserialize)]
 pub struct MyEvent {
     pub body: String,
 }
 
-#[derive(Deserialize)]
+impl From<FullRequest> for MyEvent {
+    fn from(orig: FullRequest) -> Self {
+        MyEvent {
+            body: serde_json::to_string(&orig.body).unwrap(),
+        }
+    }
+}
+
 pub struct OtherEvent {
     pub thing: bool,
 }
 
-pub async fn root_handler(event: serde_json::Value) -> ApiResponse {
+impl From<FullRequest> for OtherEvent {
+    fn from(orig: FullRequest) -> Self {
+        OtherEvent {
+            thing: orig.headers.contains_key("content-type"),
+        }
+    }
+}
+
+pub async fn root_handler(event: FullRequest) -> ApiResponse {
     ApiResponse {
         status_code: 200,
         ..Default::default()

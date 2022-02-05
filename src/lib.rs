@@ -1,5 +1,5 @@
 use std::{future::Future, collections::HashMap, pin::Pin};
-use serde::de::DeserializeOwned;
+use http_helper::FullRequest;
 
 pub mod self_host;
 pub mod aws;
@@ -25,7 +25,7 @@ pub type ServerInitError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 pub type BoxDynFuture<O> = Pin<Box<dyn Future<Output = O> + Send>>;
 pub type BoxDynFn<I, O> = Box<dyn Fn(I) -> BoxDynFuture<O> + Sync + Send>;
-pub type RouteMapInner = HashMap<String, BoxDynFn<serde_json::Value, ApiResponse>>;
+pub type RouteMapInner = HashMap<String, BoxDynFn<FullRequest, ApiResponse>>;
 
 #[derive(Default)]
 pub struct RouteMap {
@@ -117,12 +117,12 @@ impl ServerBuilder {
         route: &str,
         f: F
     ) -> Self
-        where I: DeserializeOwned,
+        where I: From<FullRequest>,
             Out: 'static + Send + Future<Output = ApiResponse>,
               F: 'static + Send + Sync + Fn(I) -> Out,
     {
-        let box_dyn: BoxDynFn<serde_json::Value, ApiResponse>;
-        box_dyn = create_box_dyn_fn_convert(f, |x| serde_json::from_value(x).unwrap());
+        let box_dyn: BoxDynFn<FullRequest, ApiResponse>;
+        box_dyn = create_box_dyn_fn_from(f);
         self.route_map.get_map.insert(route.to_owned(), box_dyn);
         self
     }
@@ -132,12 +132,12 @@ impl ServerBuilder {
         route: &str,
         f: F
     ) -> Self
-        where I: DeserializeOwned,
+        where I: From<FullRequest>,
             Out: 'static + Send + Future<Output = ApiResponse>,
               F: 'static + Send + Sync + Fn(I) -> Out,
     {
-        let box_dyn: BoxDynFn<serde_json::Value, ApiResponse>;
-        box_dyn = create_box_dyn_fn_convert(f, |x| serde_json::from_value(x).unwrap());
+        let box_dyn: BoxDynFn<FullRequest, ApiResponse>;
+        box_dyn = create_box_dyn_fn_from(f);
         self.route_map.post_map.insert(route.to_owned(), box_dyn);
         self
     }

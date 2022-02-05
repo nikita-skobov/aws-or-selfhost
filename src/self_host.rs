@@ -1,16 +1,15 @@
 use axum::{Router, routing::{get, post}};
 use hyper::{Request, Body, StatusCode};
-use serde_json::Value;
 use std::{net::SocketAddr, pin::Pin, future::Future, sync::Arc};
 
-use crate::{RouteMap, ServerInitResponse, http_helper, ApiResponse, header_hashmap_to_header_map, body_as_bytes};
+use crate::{RouteMap, ServerInitResponse, http_helper::{self, FullRequest}, ApiResponse, header_hashmap_to_header_map, body_as_bytes};
 
 pub fn app_route_get<F>(
     app: Router,
     route_path: &str,
     cb: Arc<F>,
 ) -> Router
-    where F: 'static + Send + Fn(Value) -> Pin<Box<dyn Future<Output = ApiResponse> + Send>> + Sync
+    where F: 'static + Send + Fn(FullRequest) -> Pin<Box<dyn Future<Output = ApiResponse> + Send>> + Sync
 {
     app.route(route_path, get(move |r: Request<Body>| async move {
         let req_json = http_helper::request_to_serde_json_self(r).await;
@@ -27,7 +26,7 @@ pub fn app_route_post<F>(
     route_path: &str,
     cb: Arc<F>,
 ) -> Router
-    where F: 'static + Send + Fn(Value) -> Pin<Box<dyn Future<Output = ApiResponse> + Send>> + Sync
+    where F: 'static + Send + Fn(FullRequest) -> Pin<Box<dyn Future<Output = ApiResponse> + Send>> + Sync
 {
     app.route(route_path, post(move |r: Request<Body>| async move {
         let req_json = http_helper::request_to_serde_json_self(r).await;

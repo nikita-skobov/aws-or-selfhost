@@ -14,6 +14,34 @@ struct JsonifyRequest<'a> {
     pub body: serde_json::Value,
 }
 
+pub struct FullRequest {
+    pub method: String,
+    pub uri: String,
+    pub path: String,
+    pub query: Option<String>,
+    pub version: String,
+    pub headers: HashMap<String, String>,
+    pub body: serde_json::Value,
+}
+
+impl<'a> From<JsonifyRequest<'a>> for FullRequest {
+    fn from(v: JsonifyRequest<'a>) -> Self {
+        let mut headers = HashMap::new();
+        for (key, val) in v.headers.iter() {
+            headers.insert(key.to_string(), val.to_string());
+        }
+        FullRequest {
+            method: v.method.into(),
+            uri: v.uri.into(),
+            path: v.path.into(),
+            query: v.query.map(|x| x.to_owned()),
+            version: v.version.into(),
+            headers,
+            body: v.body.into(),
+        }
+    }
+}
+
 macro_rules! request_to_serde_json {
     ($req:tt) => {
         {
@@ -52,16 +80,20 @@ macro_rules! request_to_serde_json {
                 query: parts.uri.query(),
             };
 
-            serde_json::to_value(json_req).unwrap()
+            json_req.into()
         }
     };
 }
 
 
-pub async fn request_to_serde_json_aws(req: lambda_http::Request) -> serde_json::Value {
+pub async fn request_to_serde_json_aws(
+    req: lambda_http::Request
+) -> FullRequest {
     request_to_serde_json!(req)
 }
 
-pub async fn request_to_serde_json_self(req: hyper::Request<hyper::Body>) -> serde_json::Value {
+pub async fn request_to_serde_json_self(
+    req: hyper::Request<hyper::Body>
+) -> FullRequest {
     request_to_serde_json!(req)
 }

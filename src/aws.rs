@@ -9,20 +9,8 @@ pub async fn aws_init(
     let routes_owned = &route_map;
     let closure = move |event: lambda_http::Request| async move {
         let event_json = http_helper::request_to_serde_json_aws(event).await;
-        let request_method = match event_json.get("method") {
-            Some(v) => match v {
-                serde_json::Value::String(v) => v.as_str(),
-                _ => panic!("Expected method to be a string"),
-            }
-            None => panic!("Expected method to exist")
-        };
-        let request_key = match event_json.get("path") {
-            Some(p) => match p {
-                serde_json::Value::String(p) => p.as_str(),
-                _ => panic!("Expected path to be a string"),
-            }
-            None => panic!("Expected path to exist")
-        };
+        let request_method = event_json.method.as_str();
+        let request_key = event_json.path.as_str();
 
         let route_map_inner = match request_method {
             "GET" => &routes_owned.get_map,
