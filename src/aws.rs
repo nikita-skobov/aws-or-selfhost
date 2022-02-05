@@ -1,4 +1,4 @@
-use crate::{RouteMap, ServerInitResponse, ApiResponse, http_helper};
+use crate::{RouteMap, ServerInitResponse, ApiResponse, http_helper, body_as_bytes};
 
 
 pub async fn aws_init(
@@ -36,7 +36,6 @@ pub async fn aws_init(
             }
             None => ApiResponse {
                 status_code: 500,
-                json: serde_json::Value::Null,
                 ..Default::default()
             }
         };
@@ -47,9 +46,9 @@ pub async fn aws_init(
         for (k, v) in json_resp.headers {
             builder = builder.header(k, v);
         }
-        let response = builder.body(
-            serde_json::to_string(&json_resp.json).unwrap()
-        ).expect("Failed to render response");
+        let body_bytes = body_as_bytes(json_resp.resp);
+        let response = builder.body(body_bytes.to_vec())
+            .expect("Failed to render response");
 
         Ok(response)
     };

@@ -23,14 +23,14 @@ pub struct OtherEvent {
 pub async fn root_handler(event: serde_json::Value) -> ApiResponse {
     ApiResponse {
         status_code: 200,
-        json: event,
+        ..Default::default()
     }
 }
 
 pub async fn event3_handler(event: MyEvent) -> ApiResponse {
     ApiResponse {
         status_code: 404,
-        json: serde_json::Value::Bool(true),
+        ..Default::default()
     }
 }
 

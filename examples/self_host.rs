@@ -3,7 +3,6 @@ use aws_or_selfhost::{ServerBuilder, ApiResponse, tokio_main};
 pub async fn root_handler(event: serde_json::Value) -> ApiResponse {
     ApiResponse {
         status_code: 200,
-        json: serde_json::Value::String("dsadsa".into()),
         ..Default::default()
     }
 }
