@@ -1,11 +1,11 @@
 use std::{future::Future, collections::HashMap, pin::Pin};
-
-use hyper::HeaderMap;
 use serde::de::DeserializeOwned;
 
 pub mod self_host;
 pub mod aws;
 pub mod http_helper;
+mod api;
+pub use api::*;
 
 pub fn tokio_main(initialization: impl Future<Output = Result<(), ServerInitError>>) {
     let server_init_res = tokio::runtime::Builder::new_multi_thread()
@@ -17,69 +17,6 @@ pub fn tokio_main(initialization: impl Future<Output = Result<(), ServerInitErro
     if let Err(e) = server_init_res {
         eprintln!("{e}");
         std::process::exit(1);
-    }
-}
-
-pub fn header_hashmap_to_header_map(
-    map: HashMap<&'static str, String>
-) -> HeaderMap {
-    let mut headermap = HeaderMap::new();
-    for (k, v) in map {
-        headermap.insert(k, v.parse().unwrap());
-    }
-    headermap
-}
-
-pub fn body_as_bytes(
-    resp_type: ApiResponseType,
-) -> Vec<u8> {
-    match resp_type {
-        ApiResponseType::Json(jv) => {
-            let s = serde_json::to_string(&jv).unwrap();
-            s.as_bytes().to_vec()
-        }
-        ApiResponseType::Bytes(b) => {
-            b
-        }
-        ApiResponseType::String(s) => {
-            s.as_bytes().to_vec()
-        }
-    }
-}
-
-pub enum ApiResponseType {
-    Json(serde_json::Value),
-    Bytes(Vec<u8>),
-    String(String),
-}
-
-impl Default for ApiResponseType {
-    fn default() -> Self {
-        ApiResponseType::Json(serde_json::Value::Null)
-    }
-}
-
-/// Two components to a Json api request:
-/// - Json
-/// - StatusCode
-pub struct ApiResponse {
-    pub status_code: u16,
-    pub resp: ApiResponseType,
-    pub headers: HashMap<&'static str, String>,
-}
-impl Default for ApiResponse {
-    fn default() -> Self {
-        Self {
-            status_code: 500,
-            resp: ApiResponseType::default(),
-            headers: HashMap::default(),
-        }
-    }
-}
-
-impl ApiResponse {
-    pub fn header<V: AsRef<str>>(&mut self, key: &'static str, value: V) {
-        self.headers.insert(key, value.as_ref().to_owned());
     }
 }
 
